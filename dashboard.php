@@ -68,6 +68,54 @@ while ($row = $status_result->fetch_assoc()) {
     $status_breakdown[$row['status']] = $row['count'];
 }
 
+// Sales statistics
+$paid_today_query = "SELECT COALESCE(SUM(total), 0) AS paid_today FROM orders WHERE status = 'paid' AND DATE(created_at) = CURDATE()";
+$paid_today_result = $conn->query($paid_today_query);
+$paid_today = (float)($paid_today_result->fetch_assoc()['paid_today'] ?? 0);
+
+$monthly_sales_query = "SELECT COALESCE(SUM(total), 0) AS monthly_sales, COUNT(*) AS paid_orders_month FROM orders WHERE status = 'paid' AND YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())";
+$monthly_sales_result = $conn->query($monthly_sales_query);
+$monthly_sales_data = $monthly_sales_result->fetch_assoc();
+$monthly_sales = (float)($monthly_sales_data['monthly_sales'] ?? 0);
+
+$avg_paid_query = "SELECT COALESCE(AVG(total), 0) AS avg_paid_total FROM orders WHERE status = 'paid'";
+$avg_paid_result = $conn->query($avg_paid_query);
+$avg_paid_total = (float)($avg_paid_result->fetch_assoc()['avg_paid_total'] ?? 0);
+
+$paid_rate = $total_orders > 0 ? (($status_breakdown['paid'] / $total_orders) * 100) : 0;
+
+$top_items_query = "SELECT item, SUM(qty) AS qty_sold, SUM(total) AS total_revenue 
+                    FROM orders 
+                    WHERE status = 'paid' AND DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    GROUP BY item
+                    ORDER BY qty_sold DESC, total_revenue DESC
+                    LIMIT 5";
+$top_items_result = $conn->query($top_items_query);
+$top_items = [];
+while ($row = $top_items_result->fetch_assoc()) {
+    $top_items[] = $row;
+}
+
+$daily_sales_query = "SELECT DATE(created_at) AS sale_date, COALESCE(SUM(total), 0) AS total_sales
+                      FROM orders
+                      WHERE status = 'paid' AND DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+                      GROUP BY DATE(created_at)
+                      ORDER BY sale_date ASC";
+$daily_sales_result = $conn->query($daily_sales_query);
+$daily_sales_map = [];
+while ($row = $daily_sales_result->fetch_assoc()) {
+    $daily_sales_map[$row['sale_date']] = (float)$row['total_sales'];
+}
+
+$daily_sales = [];
+for ($i = 6; $i >= 0; $i--) {
+    $date_key = date('Y-m-d', strtotime("-{$i} day"));
+    $daily_sales[] = [
+        'date' => $date_key,
+        'total' => $daily_sales_map[$date_key] ?? 0
+    ];
+}
+
 // Execute main query with prepared statement
 if (!empty($params)) {
     $stmt = $conn->prepare($query);
@@ -122,6 +170,94 @@ if (!empty($params)) {
             </div>
         </div>
     </div>
+
+    <section class="surface-card mb-4">
+        <h2 class="section-title">Statistik Penjualan</h2>
+        <div class="row g-3 mb-3">
+            <div class="col-md-6 col-xl-3">
+                <div class="stat-card h-100">
+                    <span class="stat-label">Penjualan Paid Hari Ini</span>
+                    <p class="stat-value currency">Rp <?= number_format($paid_today) ?></p>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="stat-card h-100">
+                    <span class="stat-label">Penjualan Paid Bulan Ini</span>
+                    <p class="stat-value currency">Rp <?= number_format($monthly_sales) ?></p>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="stat-card h-100">
+                    <span class="stat-label">Rata-rata Nilai Transaksi Paid</span>
+                    <p class="stat-value currency">Rp <?= number_format($avg_paid_total) ?></p>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="stat-card h-100">
+                    <span class="stat-label">Paid Rate</span>
+                    <p class="stat-value"><?= number_format($paid_rate, 1) ?>%</p>
+                    <small class="text-muted"><?= $status_breakdown['paid'] ?> paid / <?= $total_orders ?> total</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <div class="table-wrapper table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th colspan="3">Produk Terlaris (30 Hari)</th>
+                            </tr>
+                            <tr>
+                                <th>Menu</th>
+                                <th>Qty</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($top_items)): ?>
+                                <?php foreach ($top_items as $item): ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars($item['item']) ?></td>
+                                        <td><?= (int)$item['qty_sold'] ?></td>
+                                        <td>Rp <?= number_format((float)$item['total_revenue']) ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">Belum ada transaksi paid.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="table-wrapper table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th colspan="2">Tren Penjualan Paid (7 Hari)</th>
+                            </tr>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($daily_sales as $day): ?>
+                                <tr>
+                                    <td><?= date('d M Y', strtotime($day['date'])) ?></td>
+                                    <td>Rp <?= number_format($day['total']) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <section class="surface-card mb-4">
         <h2 class="section-title">Filter</h2>
