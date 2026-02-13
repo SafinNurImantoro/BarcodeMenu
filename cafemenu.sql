@@ -30,11 +30,16 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `menu` (
-  `id` int NOT NULL,
-  `name` varchar(100) DEFAULT NULL,
-  `price` int DEFAULT NULL,
+  `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `name` varchar(100) NOT NULL,
+  `price` int NOT NULL,
   `image` varchar(255) DEFAULT NULL,
-  `category` varchar(50) NOT NULL
+  `category` varchar(50) NOT NULL,
+  `is_available` tinyint DEFAULT 1,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY `category_idx` (`category`),
+  KEY `is_available_idx` (`is_available`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
@@ -70,18 +75,25 @@ INSERT INTO `menu` (`id`, `name`, `price`, `image`, `category`) VALUES
 --
 
 CREATE TABLE `orders` (
-  `id` int NOT NULL,
-  `table_no` varchar(10) DEFAULT NULL,
-  `customer_name` varchar(100) DEFAULT NULL,
-  `customer_whatsapp` varchar(20) DEFAULT NULL,
-  `payment_method` varchar(50) DEFAULT NULL,
-  `total` int NOT NULL,
-  `item` varchar(50) DEFAULT NULL,
-  `qty` int DEFAULT NULL,
-  `price` int DEFAULT NULL,
-  `status` enum('pending','paid') DEFAULT 'pending',
-  `created_at` datetime DEFAULT NULL,
-  `session_id` varchar(100) DEFAULT NULL
+  `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `table_no` varchar(10) NOT NULL,
+  `customer_name` varchar(100) NOT NULL,
+  `customer_whatsapp` varchar(20) NOT NULL,
+  `payment_method` varchar(50) NOT NULL,
+  `total` decimal(10,2) NOT NULL,
+  `item` varchar(100) NOT NULL,
+  `qty` int NOT NULL DEFAULT 1,
+  `price` decimal(10,2) NOT NULL,
+  `notes` varchar(500) DEFAULT NULL,
+  `reference` varchar(100) UNIQUE DEFAULT NULL,
+  `status` enum('pending','paid','cancelled') DEFAULT 'pending',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY `status_idx` (`status`),
+  KEY `created_at_idx` (`created_at`),
+  KEY `table_no_idx` (`table_no`),
+  KEY `reference_idx` (`reference`),
+  KEY `customer_whatsapp_idx` (`customer_whatsapp`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
@@ -92,13 +104,9 @@ CREATE TABLE `orders` (
 -- Indexes for table `menu`
 --
 ALTER TABLE `menu`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `orders`
---
-ALTER TABLE `orders`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `category_idx` (`category`),
+  ADD KEY `is_available_idx` (`is_available`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -114,7 +122,7 @@ ALTER TABLE `menu`
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 
 -- --------------------------------------------------------
 
