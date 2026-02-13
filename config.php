@@ -48,14 +48,10 @@ define('DB_USER', getenv('DB_USER') ?: 'root');
 define('DB_PASS', getenv('DB_PASS') ?: '');
 define('DB_NAME', getenv('DB_NAME') ?: 'cafemenu');
 
-// Payment Gateway Configuration
+// Payment Gateway Configuration - Tripay Only
 define('TRIPAY_PRIVATE_KEY', getenv('TRIPAY_PRIVATE_KEY') ?: '');
 define('TRIPAY_MERCHANT_CODE', getenv('TRIPAY_MERCHANT_CODE') ?: '');
 define('TRIPAY_API_KEY', getenv('TRIPAY_API_KEY') ?: '');
-
-define('MIDTRANS_SERVER_KEY', getenv('MIDTRANS_SERVER_KEY') ?: '');
-define('MIDTRANS_CLIENT_KEY', getenv('MIDTRANS_CLIENT_KEY') ?: '');
-define('MIDTRANS_API_URL', getenv('MIDTRANS_API_URL') ?: 'https://app.midtrans.com/snap/v1/transactions');
 
 // Application Configuration
 define('APP_URL', getenv('APP_URL') ?: 'http://localhost/BARCODEMENU');

@@ -1,4 +1,18 @@
 <?php
+/**
+ * DEPRECATED: This file is for Midtrans payment gateway
+ * 
+ * Currently using Tripay only. This file is kept for reference.
+ * If you want to use Midtrans in future, uncomment the code below.
+ * 
+ * For now, payment processing is handled through:
+ * - submit_order.php (invoice generation)
+ * - payment/tripay_transaction.php (Tripay integration)
+ * - payment/tripay_calledback.php (Payment callback)
+ */
+
+/*
+<?php
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/config.php';
 include 'db.php';
@@ -66,3 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   }
 }
 ?>
+*/
+
+// USING TRIPAY ONLY - See payment/tripay_transaction.php instead
+?>
+
