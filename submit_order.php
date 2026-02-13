@@ -174,8 +174,8 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 $_SESSION['last_invoice'] = $fileName;
 
-// Generate download link using relative path
-$downloadPath = "invoices/" . htmlspecialchars($fileName, ENT_QUOTES, 'UTF-8');
+// Generate download link using safe download.php handler
+$downloadPath = "download.php?file=" . urlencode($fileName);
 ?>
 
 <!DOCTYPE html>
