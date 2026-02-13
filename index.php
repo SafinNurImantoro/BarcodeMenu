@@ -40,23 +40,28 @@
 $categories = ['OUR SIGNATURE', 'PURE TEA', 'MILK TEA', 'HONEY SERIES'];
 
 foreach($categories as $category):
-    $menuResult = $conn->query("SELECT * FROM menu WHERE category='$category'");
+    // Use prepared statement to prevent SQL injection
+    $stmt = $conn->prepare("SELECT id, name, price, image FROM menu WHERE category = ?");
+    $stmt->bind_param("s", $category);
+    $stmt->execute();
+    $menuResult = $stmt->get_result();
+    
     if($menuResult->num_rows > 0):
 ?>
-    <h2 class="text-center mb-4 fw-bold"><?= $category ?></h2>
+    <h2 class="text-center mb-4 fw-bold"><?= htmlspecialchars($category, ENT_QUOTES, 'UTF-8') ?></h2>
     
     <div class="d-flex flex-wrap justify-content-center gap-4 mb-5">
         <?php while ($menu = $menuResult->fetch_assoc()): ?>
         <div class="d-flex align-items-stretch" style="width: 250px;">
           <div class="card h-100 shadow-sm border-0 w-100">
             <?php if(!empty($menu['image'])): ?>
-            <img src="assets/img/<?= $menu['image'] ?>" 
+            <img src="assets/img/<?= htmlspecialchars($menu['image'], ENT_QUOTES, 'UTF-8') ?>" 
                  class="card-img-top" 
-                 alt="<?= $menu['name'] ?>" 
+                 alt="<?= htmlspecialchars($menu['name'], ENT_QUOTES, 'UTF-8') ?>" 
                  style="height:200px; object-fit:cover; border-top-left-radius:15px; border-top-right-radius:15px;">
             <?php endif; ?>
             <div class="card-body text-center d-flex flex-column">
-              <h5 class="fw-semibold"><?= $menu['name'] ?></h5>
+              <h5 class="fw-semibold"><?= htmlspecialchars($menu['name'], ENT_QUOTES, 'UTF-8') ?></h5>
               <p class="text-muted mb-3">Rp <?= number_format($menu['price'],0,',','.') ?></p>
               <?php if($category != 'topping'): ?>
               <button type="button" 
@@ -97,13 +102,18 @@ endforeach;
         <label class="fw-semibold">Topping:</label>
         <div class="d-flex flex-wrap gap-2">
           <?php
-          $toppingResult = $conn->query("SELECT * FROM menu WHERE category='topping'");
+          $toppingStmt = $conn->prepare("SELECT id, name, price FROM menu WHERE category = ?");
+          $toppingCategory = 'topping';
+          $toppingStmt->bind_param("s", $toppingCategory);
+          $toppingStmt->execute();
+          $toppingResult = $toppingStmt->get_result();
+          
           while ($topping = $toppingResult->fetch_assoc()):
           ?>
           <div class="form-check me-3">
-            <input class="form-check-input toppingCheck" type="checkbox" value="<?= $topping['name'] ?>" data-price="<?= $topping['price'] ?>" id="topping_<?= $topping['id'] ?>">
-            <label class="form-check-label" for="topping_<?= $topping['id'] ?>">
-              <?= $topping['name'] ?> (Rp <?= number_format($topping['price'],0,',','.') ?>)
+            <input class="form-check-input toppingCheck" type="checkbox" value="<?= htmlspecialchars($topping['name'], ENT_QUOTES, 'UTF-8') ?>" data-price="<?= htmlspecialchars($topping['price'], ENT_QUOTES, 'UTF-8') ?>" id="topping_<?= htmlspecialchars($topping['id'], ENT_QUOTES, 'UTF-8') ?>">
+            <label class="form-check-label" for="topping_<?= htmlspecialchars($topping['id'], ENT_QUOTES, 'UTF-8') ?>">
+              <?= htmlspecialchars($topping['name'], ENT_QUOTES, 'UTF-8') ?> (Rp <?= number_format($topping['price'],0,',','.') ?>)
             </label>
           </div>
           <?php endwhile; ?>

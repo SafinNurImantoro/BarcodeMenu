@@ -1,0 +1,26 @@
+# Security Headers
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:"
+</IfModule>
+
+# Protect sensitive files from direct access
+<FilesMatch "^(\.env|\.git|\.gitignore|\.htaccess|config\.php|db\.php|helpers\.php)">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protect logs directory via .htaccess file inside logs/
+# Create logs/.htaccess with: Order allow,deny; Deny from all
+
+# Prevent directory listing
+Options -Indexes
+
+# Prevent access to PHP files that shouldn't be executed
+<FilesMatch "^(test\.php|create_transaction\.php)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>

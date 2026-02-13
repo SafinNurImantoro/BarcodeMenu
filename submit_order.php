@@ -1,17 +1,40 @@
 <?php
 require __DIR__ . '/vendor/autoload.php';
 include 'db.php';
+include 'helpers.php';
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
 // Ambil data dari form
 $menu = $_POST['menu'] ?? [];
-$customer_name = $_POST['customer_name'] ?? '';
-$customer_whatsapp = $_POST['customer_whatsapp'] ?? '';
-$payment_method = $_POST['payment_method'] ?? '';
-$table_no = $_POST['table_no'] ?? '';
-$notes = $_POST['notes'] ?? '';
+$formData = [
+    'table_no' => $_POST['table_no'] ?? '',
+    'customer_name' => $_POST['customer_name'] ?? '',
+    'customer_whatsapp' => $_POST['customer_whatsapp'] ?? '',
+    'payment_method' => $_POST['payment_method'] ?? '',
+    'notes' => $_POST['notes'] ?? ''
+];
+
+// Validate form data
+$validation = validateOrderForm($formData);
+
+if (!$validation['valid']) {
+    // Log security event
+    logSecurityEvent('Invalid form submission attempt: ' . json_encode($validation['errors']));
+    
+    // Redirect back with error
+    $_SESSION['errors'] = $validation['errors'];
+    header('Location: checkout.php');
+    exit;
+}
+
+// Use validated data
+$table_no = $validation['data']['table_no'];
+$customer_name = $validation['data']['customer_name'];
+$customer_whatsapp = $validation['data']['customer_whatsapp'];
+$payment_method = $validation['data']['payment_method'];
+$notes = $validation['data']['notes'] ?? '';
 
 $total = 0;
 foreach ($menu as $item) {
@@ -122,9 +145,37 @@ $dompdf->setPaper('A5', 'portrait');
 $dompdf->render();
 
 // Simpan file PDF di folder "invoices"
-if (!is_dir('invoices')) mkdir('invoices');
-$file_path = 'invoices/invoice_' . time() . '.pdf';
-file_put_contents($file_path, $dompdf->output());
+$invoiceDir = __DIR__ . '/invoices';
+if (!is_dir($invoiceDir)) {
+    if (!mkdir($invoiceDir, 0755, true)) {
+        error_log("Failed to create invoices directory");
+        die("Gagal membuat folder invoice");
+    }
+}
+
+// Generate secure filename with timestamp and random string
+$timestamp = time();
+$randomStr = bin2hex(random_bytes(4));
+$fileName = "invoice_{$timestamp}_{$randomStr}.pdf";
+$filePath = $invoiceDir . DIRECTORY_SEPARATOR . $fileName;
+
+// Write PDF file with restricted permissions
+if (!file_put_contents($filePath, $dompdf->output())) {
+    error_log("Failed to write PDF file: " . $filePath);
+    die("Gagal menyimpan file invoice");
+}
+
+// Restrict file permissions (read-only for user)
+chmod($filePath, 0600);
+
+// Store invoice filename in session for access control
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$_SESSION['last_invoice'] = $fileName;
+
+// Generate download link using relative path
+$downloadPath = "invoices/" . htmlspecialchars($fileName, ENT_QUOTES, 'UTF-8');
 ?>
 
 <!DOCTYPE html>
@@ -138,14 +189,15 @@ file_put_contents($file_path, $dompdf->output());
 <div class="container mt-5">
   <div class="card p-4 shadow-sm">
     <h4 class="text-center mb-4 fw-bold">Pesanan Berhasil!</h4>
-    <p><strong>Nama Pemesan:</strong> <?= htmlspecialchars($customer_name) ?></p>
-    <p><strong>No. Meja:</strong> <?= htmlspecialchars($table_no) ?></p>
+    <p><strong>Nama Pemesan:</strong> <?= htmlspecialchars($customer_name, ENT_QUOTES, 'UTF-8') ?></p>
+    <p><strong>No. Meja:</strong> <?= htmlspecialchars($table_no, ENT_QUOTES, 'UTF-8') ?></p>
     <p><strong>Total:</strong> Rp <?= number_format($total, 0, ',', '.') ?></p>
     <div class="text-center mt-4">
-      <a href="<?= $file_path ?>" target="_blank" class="btn btn-danger me-2">Download Invoice (PDF)</a>
+      <a href="<?= $downloadPath ?>" target="_blank" class="btn btn-danger me-2">Download Invoice (PDF)</a>
       <a href="index.php" class="btn btn-secondary">Kembali ke Menu</a>
     </div>
   </div>
 </div>
 </body>
 </html>
+

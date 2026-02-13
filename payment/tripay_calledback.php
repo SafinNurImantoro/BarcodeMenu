@@ -1,6 +1,15 @@
 <?php
-// tripay_callback.php
-$privateKey = 'PRIVATE_KEY_KAMU';
+// Load configuration
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../db.php';
+
+// Get private key from environment
+$privateKey = TRIPAY_PRIVATE_KEY;
+
+if (empty($privateKey)) {
+    http_response_code(500);
+    die('Payment gateway not configured');
+}
 
 // Ambil data callback
 $json = file_get_contents("php://input");

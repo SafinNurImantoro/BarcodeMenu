@@ -1,6 +1,16 @@
 <?php
+require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/config.php';
 include 'db.php';
-include 'midtrans_config.php';
+
+// Get credentials from environment
+$serverKey = MIDTRANS_SERVER_KEY;
+$apiUrl = MIDTRANS_API_URL;
+
+if (empty($serverKey) || empty($apiUrl)) {
+    http_response_code(500);
+    die(json_encode(['error' => 'Payment gateway not configured']));
+}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   $table = $_POST['table'];
