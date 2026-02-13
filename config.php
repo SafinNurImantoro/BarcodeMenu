@@ -48,6 +48,25 @@ define('DB_USER', getenv('DB_USER') ?: 'root');
 define('DB_PASS', getenv('DB_PASS') ?: '');
 define('DB_NAME', getenv('DB_NAME') ?: 'cafemenu');
 
+// ============================================
+// ADMIN CREDENTIALS & SECURITY CONFIG
+// ============================================
+define('ADMIN_USERNAME', getenv('ADMIN_USERNAME') ?: 'admin');
+define('ADMIN_PASSWORD_HASH', getenv('ADMIN_PASSWORD_HASH') ?: '$2y$10$QhPNvEv96X/KYQ/LlvQkzOKg7cztCYlf3KJfqcL3Gc0cXPQD7rVJW');
+
+// Security Settings
+define('SESSION_TIMEOUT', (int)(getenv('SESSION_TIMEOUT') ?: 900)); // 15 minutes
+define('MAX_LOGIN_ATTEMPTS', (int)(getenv('MAX_LOGIN_ATTEMPTS') ?: 5));
+define('LOGIN_ATTEMPT_TIMEOUT', (int)(getenv('LOGIN_ATTEMPT_TIMEOUT') ?: 900));
+
+// Features
+define('ENABLE_AUDIT_LOG', getenv('ENABLE_AUDIT_LOG') === 'true');
+define('ENABLE_RATE_LIMITING', getenv('ENABLE_RATE_LIMITING') === 'true');
+define('CSRF_TOKEN_ENABLED', getenv('CSRF_TOKEN_ENABLED') === 'true');
+
+// Admin email
+define('ADMIN_EMAIL', getenv('ADMIN_EMAIL') ?: 'admin@teazzi.id');
+
 // Payment Gateway Configuration - Tripay Only
 define('TRIPAY_PRIVATE_KEY', getenv('TRIPAY_PRIVATE_KEY') ?: '');
 define('TRIPAY_MERCHANT_CODE', getenv('TRIPAY_MERCHANT_CODE') ?: '');

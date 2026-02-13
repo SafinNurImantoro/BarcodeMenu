@@ -5,45 +5,67 @@ require 'db.php';
 // Check if admin is logged in
 requireAuth();
 
+// Initialize CSRF token if not exists
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $message = '';
 $message_type = '';
 
 // Handle status update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
-    $order_id = filter_var($_POST['order_id'], FILTER_VALIDATE_INT);
-    $new_status = $_POST['new_status'] ?? '';
-    
-    if ($order_id && in_array($new_status, ['pending', 'paid'])) {
-        $stmt = $conn->prepare("UPDATE orders SET status = ? WHERE id = ?");
-        $stmt->bind_param("si", $new_status, $order_id);
+    // Validate CSRF token
+    if (($_POST['csrf_token'] ?? '') !== ($_SESSION['csrf_token'] ?? '')) {
+        $message = '❌ CSRF token tidak valid!';
+        $message_type = 'danger';
+    } else {
+        $order_id = filter_var($_POST['order_id'], FILTER_VALIDATE_INT);
+        $new_status = $_POST['new_status'] ?? '';
+        $old_status = $_POST['old_status'] ?? '';
         
-        if ($stmt->execute()) {
-            $message = '✅ Status pesanan berhasil diperbarui!';
-            $message_type = 'success';
-        } else {
-            $message = '❌ Error: ' . htmlspecialchars($stmt->error);
-            $message_type = 'danger';
+        if ($order_id && in_array($new_status, ['pending', 'paid'])) {
+            $stmt = $conn->prepare("UPDATE orders SET status = ? WHERE id = ?");
+            $stmt->bind_param("si", $new_status, $order_id);
+            
+            if ($stmt->execute()) {
+                $message = '✅ Status pesanan berhasil diperbarui!';
+                $message_type = 'success';
+                // Log the action
+                logOrderAction('status_changed', $order_id, "Status changed from {$old_status} to {$new_status}");
+            } else {
+                $message = '❌ Error: ' . htmlspecialchars($stmt->error);
+                $message_type = 'danger';
+            }
+            $stmt->close();
         }
-        $stmt->close();
     }
 }
 
 // Handle delete
 if (isset($_GET['delete'])) {
-    $order_id = filter_var($_GET['delete'], FILTER_VALIDATE_INT);
-    
-    if ($order_id) {
-        $stmt = $conn->prepare("DELETE FROM orders WHERE id = ?");
-        $stmt->bind_param("i", $order_id);
+    // Validate CSRF parameter
+    if (($_GET['csrf'] ?? '') !== ($_SESSION['csrf_token'] ?? '')) {
+        $message = '❌ CSRF token tidak valid untuk delete!';
+        $message_type = 'danger';
+    } else {
+        $order_id = filter_var($_GET['delete'], FILTER_VALIDATE_INT);
         
-        if ($stmt->execute()) {
-            $message = '✅ Pesanan berhasil dihapus!';
-            $message_type = 'success';
-        } else {
-            $message = '❌ Error: ' . htmlspecialchars($stmt->error);
-            $message_type = 'danger';
+        if ($order_id) {
+            $stmt = $conn->prepare("DELETE FROM orders WHERE id = ?");
+            $stmt->bind_param("i", $order_id);
+            
+            if ($stmt->execute()) {
+                $message = '✅ Pesanan berhasil dihapus!';
+                $message_type = 'success';
+                // Log the action
+                logOrderAction('deleted', $order_id, 'Order permanently deleted');
+            } else {
+                $message = '❌ Error: ' . htmlspecialchars($stmt->error);
+                $message_type = 'danger';
+            }
+            $stmt->close();
         }
-        $stmt->close();
     }
 }
 
@@ -220,6 +242,9 @@ $total_pages = ceil($total / $limit);
     <div class="filter-card">
         <h5 class="mb-3">🔍 Filter & Pencarian</h5>
         <form method="GET" action="" class="row g-2">
+            <!-- CSRF Token -->
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+            
             <div class="col-md-3">
                 <select name="status" class="form-select">
                     <option value="all" <?= ($status_filter === 'all') ? 'selected' : '' ?>>Semua Status</option>
@@ -271,7 +296,9 @@ $total_pages = ceil($total / $limit);
                                 <td><strong>Rp <?= number_format($row['total']) ?></strong></td>
                                 <td>
                                     <form method="POST" action="" style="display: inline;">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                                         <input type="hidden" name="order_id" value="<?= $row['id'] ?>">
+                                        <input type="hidden" name="old_status" value="<?= $row['status'] ?>">
                                         <select name="new_status" class="form-select form-select-sm" onchange="this.form.submit()">
                                             <option value="pending" <?= ($row['status'] === 'pending') ? 'selected' : '' ?>>⏳ Pending</option>
                                             <option value="paid" <?= ($row['status'] === 'paid') ? 'selected' : '' ?>>✅ Paid</option>
@@ -285,7 +312,7 @@ $total_pages = ceil($total / $limit);
                                        target="_blank" class="btn btn-sm btn-success action-btn" title="Chat WhatsApp">
                                         💬 WA
                                     </a>
-                                    <a href="?delete=<?= $row['id'] ?>" 
+                                    <a href="?delete=<?= $row['id'] ?>&csrf=<?= htmlspecialchars($_SESSION['csrf_token']) ?>" 
                                        class="btn btn-sm btn-danger action-btn"
                                        onclick="return confirm('Hapus pesanan ini?')">
                                         🗑️ Hapus

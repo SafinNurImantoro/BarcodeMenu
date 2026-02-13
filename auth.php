@@ -6,12 +6,12 @@
 
 session_start();
 
-// Default admin credentials (CHANGE THIS IN PRODUCTION!)
-const ADMIN_USERNAME = 'admin';
-// Password hash for 'admin123' - Use simpler approach for reliability
-// To change password, use: password_hash('your_password', PASSWORD_DEFAULT)
-const ADMIN_PASSWORD = 'admin123'; // For now, simple plaintext comparison
-const ADMIN_PASSWORD_HASH = '$2y$10$QhPNvEv96X/KYQ/LlvQkzOKg7cztCYlf3KJfqcL3Gc0cXPQD7rVJW'; // Correct hash for 'admin123'
+// Load configuration
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/audit_log.php';
+
+// Import credentials from environment (config.php)
+// These are now defined as constants from .env file
 
 /**
  * Check if user is authenticated as admin
@@ -41,6 +41,61 @@ function getAdminUsername() {
 }
 
 /**
+ * Check if user has exceeded login attempts
+ * @param string $username
+ * @return bool
+ */
+function isRateLimited($username) {
+    if (!ENABLE_RATE_LIMITING) {
+        return false;
+    }
+    
+    $rate_limit_key = 'login_attempts_' . md5($username . $_SERVER['REMOTE_ADDR'] ?? '');
+    $attempts_data = $_SESSION[$rate_limit_key] ?? null;
+    
+    // Check if there are recorded attempts
+    if (!$attempts_data) {
+        return false;
+    }
+    
+    $last_attempt_time = $attempts_data['time'] ?? 0;
+    $attempt_count = $attempts_data['count'] ?? 0;
+    $current_time = time();
+    
+    // If timeout period has passed, reset counter
+    if ($current_time - $last_attempt_time >= LOGIN_ATTEMPT_TIMEOUT) {
+        unset($_SESSION[$rate_limit_key]);
+        return false;
+    }
+    
+    // If exceeded max attempts, still blocked
+    return $attempt_count >= MAX_LOGIN_ATTEMPTS;
+}
+
+/**
+ * Record failed login attempt
+ * @param string $username
+ */
+function recordFailedAttempt($username) {
+    if (!ENABLE_RATE_LIMITING) {
+        return;
+    }
+    
+    $rate_limit_key = 'login_attempts_' . md5($username . $_SERVER['REMOTE_ADDR'] ?? '');
+    $attempts_data = $_SESSION[$rate_limit_key] ?? null;
+    
+    if (!$attempts_data) {
+        $_SESSION[$rate_limit_key] = [
+            'count' => 1,
+            'time' => time()
+        ];
+    } else {
+        $_SESSION[$rate_limit_key]['count']++;
+        $_SESSION[$rate_limit_key]['time'] = time();
+    }
+}
+
+/**
  * Login admin with username and password
  * @param string $username
  * @param string $password
@@ -59,18 +114,24 @@ function loginAdmin($username, $password) {
         return $result;
     }
     
-    // Check credentials - Use both methods for compatibility
-    $username_match = ($username === ADMIN_USERNAME);
-    
-    // Try password_verify first (for hashed passwords)
-    $password_match = password_verify($password, ADMIN_PASSWORD_HASH);
-    
-    // Fallback to plaintext for development (REMOVE IN PRODUCTION!)
-    if (!$password_match && defined('ADMIN_PASSWORD')) {
-        $password_match = ($password === ADMIN_PASSWORD);
+    // Check rate limiting
+    if (isRateLimited($username)) {
+        $result['message'] = 'Terlalu banyak percobaan login gagal. Silakan coba dalam ' . (LOGIN_ATTEMPT_TIMEOUT / 60) . ' menit.';
+        if (function_exists('logSecurityEvent')) {
+            logSecurityEvent('Rate limit exceeded for login', 'warning', $username);
+        }
+        return $result;
     }
     
+    // Check credentials
+    $username_match = ($username === ADMIN_USERNAME);
+    $password_match = password_verify($password, ADMIN_PASSWORD_HASH);
+    
     if ($username_match && $password_match) {
+        // Clear rate limit on successful login
+        $rate_limit_key = 'login_attempts_' . md5($username . $_SERVER['REMOTE_ADDR'] ?? '');
+        unset($_SESSION[$rate_limit_key]);
+        
         // Regenerate session ID for security
         session_regenerate_id(true);
         
@@ -93,10 +154,14 @@ function loginAdmin($username, $password) {
         $result['message'] = 'Login berhasil!';
         return $result;
     } else {
+        // Record failed attempt for rate limiting
+        recordFailedAttempt($username);
+        
         // Log failed attempt
         if (function_exists('logSecurityEvent')) {
             logSecurityEvent('Failed admin login attempt', 'warning', $username);
         }
+
         
         $result['message'] = 'Username atau password salah';
         return $result;
@@ -120,10 +185,10 @@ function logoutAdmin() {
 }
 
 /**
- * Check and enforce session timeout (15 minutes)
+ * Check and enforce session timeout
  */
 function checkSessionTimeout() {
-    $timeout = 15 * 60; // 15 minutes
+    $timeout = SESSION_TIMEOUT; // Use config value instead of hardcoded 15 minutes
     
     // Only check if user is logged in
     if (!isAdminLoggedIn()) {
@@ -147,54 +212,6 @@ function checkSessionTimeout() {
     $_SESSION['last_activity'] = time();
 }
 
-/**
- * Log security events
- * @param string $event
- * @param string $level (info, warning, danger, success)
- * @param string $details
- */
-function logSecurityEvent($event, $level = 'info', $details = '') {
-    try {
-        $log_dir = __DIR__ . '/logs';
-        
-        // Check and create logs directory if doesn't exist
-        if (!is_dir($log_dir)) {
-            @mkdir($log_dir, 0755, true);
-        }
-        
-        // Only log if directory is writable
-        if (!is_writable($log_dir)) {
-            error_log("Log directory not writable: " . $log_dir);
-            return;
-        }
-        
-        $log_file = $log_dir . '/admin_security.log';
-        
-        $timestamp = date('Y-m-d H:i:s');
-        $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        $user_agent = substr($_SERVER['HTTP_USER_AGENT'] ?? 'unknown', 0, 100);
-        
-        $log_entry = "[{$timestamp}] IP: {$ip_address} | LEVEL: {$level} | EVENT: {$event}";
-        if (!empty($details)) {
-            $log_entry .= " | DETAILS: {$details}";
-        }
-        $log_entry .= " | UA: {$user_agent}\n";
-        
-        // Suppress warnings if write fails
-        @error_log($log_entry, 3, $log_file);
-    } catch (Exception $e) {
-        // Silent fail - don't break login process
-        error_log("Security logging error: " . $e->getMessage());
-    }
-}
-
-/**
- * Check if it's the first login (need to change password)
- * @return bool
- */
-function isFirstLogin() {
-    return !isset($_SESSION['admin_loggedin']) || !isset($_SESSION['login_time']);
-}
 
 // Initialize security checks for logged-in users
 if (isAdminLoggedIn()) {

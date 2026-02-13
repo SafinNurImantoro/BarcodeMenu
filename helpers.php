@@ -152,19 +152,8 @@ function validateFileName($filename) {
 }
 
 /**
- * Log security event
- * @param string $event Event description
- * @param string $ip Client IP address
+ * NOTE: logSecurityEvent() has been moved to audit_log.php
+ * Please use audit_log.php for all logging functions
  */
-function logSecurityEvent($event, $ip = null) {
-    if ($ip === null) {
-        $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
-    }
-    
-    $timestamp = date('Y-m-d H:i:s');
-    $logMessage = "[{$timestamp}] IP: {$ip} | {$event}\n";
-    
-    error_log($logMessage, 3, __DIR__ . '/logs/security.log');
-}
 
 ?>

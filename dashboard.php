@@ -5,6 +5,11 @@ require 'db.php';
 // Check if admin is logged in
 requireAuth();
 
+// Initialize CSRF token if not exists
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Get filter parameters
 $status_filter = $_GET['status'] ?? 'all';
 $search = $_GET['search'] ?? '';
@@ -240,6 +245,9 @@ if (!empty($params)) {
     <div class="filter-card">
         <h5 class="mb-3">🔍 Filter & Pencarian</h5>
         <form method="GET" action="" class="row g-2">
+            <!-- CSRF Token -->
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+            
             <div class="col-md-3">
                 <select name="status" class="form-select">
                     <option value="all" <?= ($status_filter === 'all') ? 'selected' : '' ?>>Semua Status</option>
