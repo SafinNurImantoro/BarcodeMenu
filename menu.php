@@ -237,7 +237,7 @@ function sanitizeMenuCategory($category) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Menu - TEAZZI Admin</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/admin-minimal.css">
+  <link rel="stylesheet" href="assets/css/admin-minimal.css?v=20260213a">
   <style>
     .menu-image {
       max-width: 60px;
@@ -264,6 +264,23 @@ function sanitizeMenuCategory($category) {
     }
     .search-bar button {
       flex-shrink: 0;
+    }
+    @media (max-width: 1024px) {
+      .search-bar input,
+      .search-bar select {
+        min-width: 170px;
+      }
+    }
+    @media (max-width: 767.98px) {
+      .search-bar {
+        gap: 8px;
+      }
+      .search-bar input,
+      .search-bar select,
+      .search-bar button {
+        width: 100%;
+        min-width: 100%;
+      }
     }
     .no-image {
       display: flex;

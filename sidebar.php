@@ -6,6 +6,12 @@ if (!function_exists('isAdminLoggedIn')) {
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>
 
+<button type="button" class="mobile-sidebar-toggle" id="mobileSidebarToggle" aria-label="Buka menu admin">
+  Menu
+</button>
+
+<div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
 <aside class="admin-sidebar">
   <h4 class="sidebar-brand">TEAZZI Admin</h4>
 
@@ -31,3 +37,44 @@ $current_page = basename($_SERVER['PHP_SELF']);
     Session timeout: 15 minutes
   </div>
 </aside>
+
+<script>
+(() => {
+  const toggleButton = document.getElementById('mobileSidebarToggle');
+  const overlay = document.getElementById('sidebarOverlay');
+
+  if (!toggleButton || !overlay) return;
+
+  const closeSidebar = () => {
+    document.body.classList.remove('sidebar-open');
+    toggleButton.setAttribute('aria-expanded', 'false');
+  };
+
+  const openSidebar = () => {
+    document.body.classList.add('sidebar-open');
+    toggleButton.setAttribute('aria-expanded', 'true');
+  };
+
+  toggleButton.addEventListener('click', () => {
+    if (document.body.classList.contains('sidebar-open')) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
+  });
+
+  overlay.addEventListener('click', closeSidebar);
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeSidebar();
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 1199) {
+      closeSidebar();
+    }
+  });
+})();
+</script>
