@@ -86,206 +86,84 @@ if (!empty($params)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - TEAZZI Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f8f5f0;
-            font-family: 'Poppins', sans-serif;
-        }
-
-        .main-content {
-            margin-left: 230px;
-            padding: 30px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #080e83 0%, #1a1f5c 100%);
-            color: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .stat-card h6 {
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.8);
-            margin-bottom: 10px;
-        }
-
-        .stat-card h3 {
-            font-size: 2rem;
-            font-weight: 700;
-            margin: 0;
-        }
-
-        .stat-card .icon {
-            font-size: 2rem;
-            opacity: 0.7;
-        }
-
-        .filter-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .table-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .table {
-            margin-bottom: 0;
-        }
-
-        .table thead {
-            background-color: #f8f9fa;
-            border-bottom: 2px solid #dee2e6;
-        }
-
-        .status-badge {
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-
-        .status-pending {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-
-        .status-paid {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .btn-action {
-            padding: 5px 10px;
-            font-size: 0.85rem;
-            border-radius: 6px;
-        }
-
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-
-        .title {
-            color: #080e83;
-            font-weight: 700;
-            margin-bottom: 30px;
-            font-size: 1.8rem;
-        }
-
-        .form-control, .form-select {
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-        }
-
-        .form-control:focus, .form-select:focus {
-            border-color: #080e83;
-            box-shadow: 0 0 0 0.2rem rgba(8, 14, 131, 0.25);
-        }
-    </style>
+    <link rel="stylesheet" href="assets/css/admin-minimal.css">
 </head>
 <body>
 
 <?php include 'sidebar.php'; ?>
 
-<div class="main-content">
-    <h1 class="title">📊 Dashboard Pesanan</h1>
+<main class="main-content">
+    <h1 class="page-title">Dashboard Pesanan</h1>
+    <p class="page-subtitle">Ringkasan operasional dan daftar pesanan harian.</p>
 
-    <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3">
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-lg-3">
             <div class="stat-card">
-                <h6>Total Pesanan</h6>
-                <div class="d-flex justify-content-between align-items-center">
-                    <h3><?= $total_orders ?></h3>
-                    <div class="icon">📋</div>
-                </div>
+                <span class="stat-label">Total Pesanan</span>
+                <p class="stat-value"><?= $total_orders ?></p>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-6 col-lg-3">
             <div class="stat-card">
-                <h6>Pesanan Pending</h6>
-                <div class="d-flex justify-content-between align-items-center">
-                    <h3><?= $status_breakdown['pending'] ?></h3>
-                    <div class="icon">⏳</div>
-                </div>
+                <span class="stat-label">Status Pending</span>
+                <p class="stat-value"><?= $status_breakdown['pending'] ?></p>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-6 col-lg-3">
             <div class="stat-card">
-                <h6>Pesanan Bayar</h6>
-                <div class="d-flex justify-content-between align-items-center">
-                    <h3><?= $status_breakdown['paid'] ?></h3>
-                    <div class="icon">✅</div>
-                </div>
+                <span class="stat-label">Status Paid</span>
+                <p class="stat-value"><?= $status_breakdown['paid'] ?></p>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-6 col-lg-3">
             <div class="stat-card">
-                <h6>Omset Hari Ini</h6>
-                <div class="d-flex justify-content-between align-items-center">
-                    <h3 style="font-size: 1.5rem;">Rp <?= number_format($daily_revenue) ?></h3>
-                    <div class="icon">💰</div>
-                </div>
+                <span class="stat-label">Omset Hari Ini</span>
+                <p class="stat-value currency">Rp <?= number_format($daily_revenue) ?></p>
             </div>
         </div>
     </div>
 
-    <!-- Filter Card -->
-    <div class="filter-card">
-        <h5 class="mb-3">🔍 Filter & Pencarian</h5>
+    <section class="surface-card mb-4">
+        <h2 class="section-title">Filter</h2>
         <form method="GET" action="" class="row g-2">
-            <!-- CSRF Token -->
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-            
+
             <div class="col-md-3">
                 <select name="status" class="form-select">
-                    <option value="all" <?= ($status_filter === 'all') ? 'selected' : '' ?>>Semua Status</option>
-                    <option value="pending" <?= ($status_filter === 'pending') ? 'selected' : '' ?>>⏳ Pending</option>
-                    <option value="paid" <?= ($status_filter === 'paid') ? 'selected' : '' ?>>✅ Paid</option>
+                    <option value="all" <?= ($status_filter === 'all') ? 'selected' : '' ?>>Semua status</option>
+                    <option value="pending" <?= ($status_filter === 'pending') ? 'selected' : '' ?>>Pending</option>
+                    <option value="paid" <?= ($status_filter === 'paid') ? 'selected' : '' ?>>Paid</option>
                 </select>
             </div>
             <div class="col-md-3">
                 <input type="date" name="date" class="form-control" value="<?= htmlspecialchars($date_filter) ?>">
             </div>
             <div class="col-md-4">
-                <input type="text" name="search" class="form-control" placeholder="Cari meja/nama/wa..." 
-                       value="<?= htmlspecialchars($search) ?>">
+                <input type="text" name="search" class="form-control" placeholder="Cari meja, nama, atau WhatsApp" value="<?= htmlspecialchars($search) ?>">
             </div>
             <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100">🔍 Cari</button>
+                <button type="submit" class="btn btn-primary w-100">Cari</button>
             </div>
         </form>
-    </div>
+    </section>
 
-    <!-- Orders Table -->
-    <div class="table-card">
-        <h5 class="mb-3">📝 Daftar Pesanan</h5>
-        
+    <section class="surface-card">
+        <h2 class="section-title">Daftar Pesanan</h2>
+
         <?php if ($result->num_rows > 0): ?>
-            <div class="table-responsive">
-                <table class="table table-hover">
+            <div class="table-wrapper table-responsive">
+                <table class="table table-hover align-middle">
                     <thead>
                         <tr>
-                            <th style="width: 5%;">ID</th>
-                            <th style="width: 8%;">Meja</th>
-                            <th style="width: 15%;">Nama Customer</th>
-                            <th style="width: 12%;">WhatsApp</th>
-                            <th style="width: 15%;">Menu</th>
-                            <th style="width: 8%;">Qty</th>
-                            <th style="width: 12%;">Total</th>
-                            <th style="width: 10%;">Status</th>
-                            <th style="width: 15%;">Waktu</th>
+                            <th>ID</th>
+                            <th>Meja</th>
+                            <th>Customer</th>
+                            <th>WhatsApp</th>
+                            <th>Menu</th>
+                            <th>Qty</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Waktu</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -295,9 +173,8 @@ if (!empty($params)) {
                                 <td><strong><?= htmlspecialchars($row['table_no']) ?></strong></td>
                                 <td><?= htmlspecialchars($row['customer_name']) ?></td>
                                 <td>
-                                    <a href="https://wa.me/<?= htmlspecialchars($row['customer_whatsapp']) ?>" 
-                                       target="_blank" class="text-decoration-none">
-                                        📱 <?= htmlspecialchars(substr($row['customer_whatsapp'], -10)) ?>
+                                    <a href="https://wa.me/<?= htmlspecialchars($row['customer_whatsapp']) ?>" target="_blank" class="text-decoration-none">
+                                        <?= htmlspecialchars(substr($row['customer_whatsapp'], -10)) ?>
                                     </a>
                                 </td>
                                 <td><?= htmlspecialchars($row['item']) ?></td>
@@ -305,7 +182,7 @@ if (!empty($params)) {
                                 <td><strong>Rp <?= number_format($row['total']) ?></strong></td>
                                 <td>
                                     <span class="status-badge status-<?= htmlspecialchars($row['status']) ?>">
-                                        <?= ($row['status'] === 'pending') ? '⏳ Pending' : '✅ Paid' ?>
+                                        <?= ($row['status'] === 'pending') ? 'Pending' : 'Paid' ?>
                                     </span>
                                 </td>
                                 <td><?= date('d/m H:i', strtotime($row['created_at'])) ?></td>
@@ -316,17 +193,15 @@ if (!empty($params)) {
             </div>
         <?php else: ?>
             <div class="no-data">
-                <p style="font-size: 1.2rem; margin-bottom: 20px;">😴 Tidak ada pesanan</p>
-                <p style="color: #ccc;">Coba ubah filter atau tunggu pesanan masuk</p>
+                <p class="mb-1">Tidak ada pesanan.</p>
+                <small>Ubah filter atau tunggu pesanan masuk.</small>
             </div>
         <?php endif; ?>
-    </div>
-
-</div>
+    </section>
+</main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Auto-refresh every 30 seconds
     setTimeout(function() {
         location.reload();
     }, 30000);

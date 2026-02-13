@@ -115,6 +115,52 @@ ALTER TABLE `menu`
 --
 ALTER TABLE `orders`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admins`
+--
+
+CREATE TABLE IF NOT EXISTS `admins` (
+  `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `username` varchar(50) NOT NULL UNIQUE,
+  `password` varchar(255) NOT NULL,
+  `email` varchar(100),
+  `role` varchar(50) DEFAULT 'admin',
+  `is_active` tinyint DEFAULT 1,
+  `last_login` datetime,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY `username_idx` (`username`),
+  KEY `is_active_idx` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `admins`
+--
+
+INSERT INTO `admins` (`username`, `password`, `email`, `role`, `is_active`) 
+VALUES ('admin', '$2y$10$QhPNvEv96X/KYQ/LlvQkzOKg7cztCYlf3KJfqcL3Gc0cXPQD7rVJW', 'admin@teazzi.id', 'admin', 1)
+ON DUPLICATE KEY UPDATE 
+  `password` = '$2y$10$QhPNvEv96X/KYQ/LlvQkzOKg7cztCYlf3KJfqcL3Gc0cXPQD7rVJW',
+  `email` = 'admin@teazzi.id',
+  `role` = 'admin',
+  `is_active` = 1;
+
+--
+-- Indexes for table `admins`
+--
+ALTER TABLE `admins`
+  ADD KEY `username_idx` (`username`),
+  ADD KEY `is_active_idx` (`is_active`);
+
+--
+-- AUTO_INCREMENT for table `admins`
+--
+ALTER TABLE `admins`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

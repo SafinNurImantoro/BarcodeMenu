@@ -159,22 +159,29 @@
     $success = '';
     $timeout = isset($_GET['timeout']);
     $logout = isset($_GET['logout']);
+    $debug_mode = (APP_ENV === 'development');
 
     // Handle form submission
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $username = $_POST['username'] ?? '';
         $password = $_POST['password'] ?? '';
 
-        $loginResult = loginAdmin($username, $password);
-
-        if ($loginResult['success']) {
-            // Force session save and redirect
-            session_write_close();
-            // Use proper Location header redirect
-            header('Location: dashboard.php', true, 302);
-            exit;
+        // Validate inputs first
+        if (empty($username) || empty($password)) {
+            $error = 'Username dan password harus diisi';
         } else {
-            $error = $loginResult['message'];
+            $loginResult = loginAdmin($username, $password);
+
+            if ($loginResult['success']) {
+                // Make sure session is saved before redirect
+                session_write_close();
+                
+                // Redirect to dashboard
+                header('Location: dashboard.php', true, 302);
+                exit;
+            } else {
+                $error = $loginResult['message'];
+            }
         }
     }
     ?>
@@ -201,6 +208,14 @@
                 ⚠️ <?= htmlspecialchars($error) ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
+            <?php if ($debug_mode): ?>
+                <div class="alert alert-warning alert-dismissible fade show">
+                    <small><strong>Debug Info:</strong><br>
+                    Error: <?= htmlspecialchars($error) ?><br>
+                    POST Data: <?= isset($_POST['username']) ? 'username submitted' : 'no username' ?></small>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
         <?php endif; ?>
 
         <?php if ($timeout): ?>

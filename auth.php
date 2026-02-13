@@ -4,10 +4,30 @@
  * Handles session management and admin login/logout
  */
 
+// Configure session before starting
+ini_set('session.use_strict_mode', 1);
+ini_set('session.use_only_cookies', 1);
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_samesite', 'Lax');
+
+// Ensure session directory is writable
+$session_save_path = session_save_path();
+if ($session_save_path && !is_writable($session_save_path)) {
+    // Try to create a custom session path
+    $custom_session_path = __DIR__ . '/session_data';
+    if (!is_dir($custom_session_path)) {
+        @mkdir($custom_session_path, 0755, true);
+    }
+    if (is_dir($custom_session_path) && is_writable($custom_session_path)) {
+        session_save_path($custom_session_path);
+    }
+}
+
 session_start();
 
 // Load configuration
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/audit_log.php';
 
 // Import credentials from environment (config.php)
@@ -97,11 +117,13 @@ function recordFailedAttempt($username) {
 
 /**
  * Login admin with username and password
+ * Uses database for credentials
  * @param string $username
  * @param string $password
  * @return array Result with 'success' and 'message'
  */
 function loginAdmin($username, $password) {
+    global $conn;
     $result = ['success' => false, 'message' => ''];
     
     // Sanitize inputs
@@ -116,54 +138,119 @@ function loginAdmin($username, $password) {
     
     // Check rate limiting
     if (isRateLimited($username)) {
-        $result['message'] = 'Terlalu banyak percobaan login gagal. Silakan coba dalam ' . (LOGIN_ATTEMPT_TIMEOUT / 60) . ' menit.';
+        $timeout_minutes = (int)(LOGIN_ATTEMPT_TIMEOUT / 60);
+        $result['message'] = 'Terlalu banyak percobaan login gagal. Silakan coba dalam ' . $timeout_minutes . ' menit.';
         if (function_exists('logSecurityEvent')) {
-            logSecurityEvent('Rate limit exceeded for login', 'warning', $username);
+            @logSecurityEvent('Rate limit exceeded for login', 'warning', $username);
         }
         return $result;
     }
     
-    // Check credentials
-    $username_match = ($username === ADMIN_USERNAME);
-    $password_match = password_verify($password, ADMIN_PASSWORD_HASH);
-    
-    if ($username_match && $password_match) {
+    try {
+        // Query database for admin user
+        $sql = "SELECT id, username, password, email, role, is_active FROM admins WHERE username = ? AND is_active = 1";
+        
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            error_log("DB prepare error: " . $conn->error);
+            $result['message'] = 'Terjadi kesalahan sistem';
+            recordFailedAttempt($username);
+            return $result;
+        }
+        
+        $stmt->bind_param("s", $username);
+        if (!$stmt->execute()) {
+            error_log("DB execute error: " . $stmt->error);
+            $result['message'] = 'Terjadi kesalahan sistem';
+            recordFailedAttempt($username);
+            return $result;
+        }
+        
+        $db_result = $stmt->get_result();
+        
+        // Check if user exists
+        if ($db_result->num_rows === 0) {
+            error_log("Login failed: User not found - $username");
+            recordFailedAttempt($username);
+            
+            try {
+                if (function_exists('logSecurityEvent')) {
+                    @logSecurityEvent('Failed admin login attempt - user not found', 'warning', $username);
+                }
+            } catch (Exception $e) {
+                error_log("Audit log error: " . $e->getMessage());
+            }
+            
+            $result['message'] = 'Username atau password salah';
+            return $result;
+        }
+        
+        $admin = $db_result->fetch_assoc();
+        $stmt->close();
+        
+        // Verify password
+        $password_match = password_verify($password, $admin['password']);
+        
+        if (!$password_match) {
+            error_log("Login failed: Password mismatch for user - $username");
+            recordFailedAttempt($username);
+            
+            try {
+                if (function_exists('logSecurityEvent')) {
+                    @logSecurityEvent('Failed admin login attempt - wrong password', 'warning', $username);
+                }
+            } catch (Exception $e) {
+                error_log("Audit log error: " . $e->getMessage());
+            }
+            
+            $result['message'] = 'Username atau password salah';
+            return $result;
+        }
+        
+        // Password correct - login successful
         // Clear rate limit on successful login
         $rate_limit_key = 'login_attempts_' . md5($username . $_SERVER['REMOTE_ADDR'] ?? '');
         unset($_SESSION[$rate_limit_key]);
         
-        // Regenerate session ID for security
-        session_regenerate_id(true);
-        
         // Set session variables
         $_SESSION['admin_loggedin'] = true;
-        $_SESSION['admin_username'] = $username;
+        $_SESSION['admin_id'] = $admin['id'];
+        $_SESSION['admin_username'] = $admin['username'];
+        $_SESSION['admin_email'] = $admin['email'];
+        $_SESSION['admin_role'] = $admin['role'];
         $_SESSION['login_time'] = time();
         $_SESSION['last_activity'] = time();
         
-        // Force session save
-        session_write_close();
-        session_start();
+        // Regenerate session ID for security
+        @session_regenerate_id(true);
         
-        // Log success
-        if (function_exists('logSecurityEvent')) {
-            logSecurityEvent('Admin login successful', 'success', $username);
+        // Update last_login in database
+        $update_sql = "UPDATE admins SET last_login = NOW() WHERE id = ?";
+        $update_stmt = $conn->prepare($update_sql);
+        if ($update_stmt) {
+            $update_stmt->bind_param("i", $admin['id']);
+            @$update_stmt->execute();
+            $update_stmt->close();
+        }
+        
+        // Try to log success
+        try {
+            if (function_exists('logSecurityEvent')) {
+                @logSecurityEvent('Admin login successful', 'success', $username);
+            }
+        } catch (Exception $e) {
+            error_log("Audit log error: " . $e->getMessage());
         }
         
         $result['success'] = true;
         $result['message'] = 'Login berhasil!';
+        error_log("Admin login successful: $username");
         return $result;
-    } else {
-        // Record failed attempt for rate limiting
+        
+    } catch (Exception $e) {
+        error_log("Login exception: " . $e->getMessage());
         recordFailedAttempt($username);
-        
-        // Log failed attempt
-        if (function_exists('logSecurityEvent')) {
-            logSecurityEvent('Failed admin login attempt', 'warning', $username);
-        }
-
-        
-        $result['message'] = 'Username atau password salah';
+        $result['message'] = 'Terjadi kesalahan sistem';
         return $result;
     }
 }
