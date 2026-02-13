@@ -29,6 +29,12 @@
     .card-body h5 { font-size:1.05rem; }
     .card-body p { font-size:0.95rem; }
     .btn-primary { border-radius:8px; }
+    .navbar-sticky {
+      position: sticky;
+      top: 0;
+      z-index: 1030;
+      box-shadow: 0 4px 14px rgba(8, 14, 131, 0.18);
+    }
     .cart-btn {
       min-width: 48px;
       min-height: 40px;
@@ -58,7 +64,7 @@
 <body class="menu-page">
 
 <!-- Navbar -->
-<nav class="navbar navbar-expand-lg" style="background-color:#080e83;">
+<nav class="navbar navbar-expand-lg navbar-sticky" style="background-color:#080e83;">
   <div class="container">
     <span class="navbar-brand fw-bold text-light">TEAZZI</span>
     <div class="ms-auto">
