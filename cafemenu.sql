@@ -125,6 +125,10 @@ ALTER TABLE `orders`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 
 -- --------------------------------------------------------
+ALTER TABLE orders
+ADD COLUMN merchant_ref VARCHAR(100) NULL AFTER id;
+
+CREATE INDEX idx_orders_merchant_ref ON orders (merchant_ref);
 
 --
 -- Table structure for table `admins`

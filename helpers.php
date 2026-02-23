@@ -63,7 +63,7 @@ function validateCustomerName($name) {
  * @return string|false Validated payment method or false
  */
 function validatePaymentMethod($method) {
-    $allowed = ['QRIS', 'Tunai', 'Transfer'];
+    $allowed = ['QRIS2', 'BRIVA', 'BNIVA', 'MANDIRIVA', 'PERMATAVA', 'ALFAMART', 'INDOMARET', 'CASH'];
     
     return in_array($method, $allowed) ? $method : false;
 }

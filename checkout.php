@@ -101,6 +101,64 @@ $total = 0;
       .section-title {
         font-size: 1.25rem;
       }
+      .table-wrapper {
+        border: 0;
+        background: transparent;
+        overflow: visible;
+      }
+      .table {
+        min-width: 0;
+        border: 0;
+        background: transparent;
+      }
+      .table thead {
+        display: none;
+      }
+      .table tbody tr {
+        display: block;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fff;
+        padding: 0.65rem;
+        margin-bottom: 0.75rem;
+      }
+      .table tbody td {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        border: 0;
+        border-bottom: 1px dashed var(--line);
+        padding: 0.45rem 0;
+        font-size: 0.92rem;
+      }
+      .table tbody td:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+      .table tbody td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #1a1f5c;
+        flex: 0 0 84px;
+      }
+      .table tfoot {
+        display: block;
+      }
+      .table tfoot tr {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fff;
+        padding: 0.65rem;
+      }
+      .table tfoot th {
+        border: 0;
+        padding: 0;
+        background: transparent !important;
+      }
     }
   </style>
 </head>
@@ -145,9 +203,9 @@ $total = 0;
                 $total += $subtotal;
               ?>
               <tr>
-                <td><?= htmlspecialchars($item['name']) ?></td>
-                <td class="text-center"><?= $item['qty'] ?></td>
-                <td>
+                <td data-label="Menu"><?= htmlspecialchars($item['name']) ?></td>
+                <td data-label="Jumlah" class="text-center"><?= $item['qty'] ?></td>
+                <td data-label="Topping">
                   <?php
                   if(count($toppings) > 0){
                     foreach($toppings as $t){
@@ -156,7 +214,7 @@ $total = 0;
                   } else { echo '-'; }
                   ?>
                 </td>
-                <td><strong>Rp <?= number_format($subtotal,0,',','.') ?></strong></td>
+                <td data-label="Subtotal"><strong>Rp <?= number_format($subtotal,0,',','.') ?></strong></td>
               </tr>
 
               <input type="hidden" name="menu[<?= $item['name'] ?>][qty]" value="<?= $item['qty'] ?>">
@@ -202,9 +260,14 @@ $total = 0;
         <div class="mb-3">
           <label class="form-label fw-semibold">Metode Pembayaran</label>
           <select name="payment_method" class="form-select" required>
-            <option value="QRIS">QRIS</option>
-            <option value="Tunai">Tunai</option>
-            <option value="Transfer">Transfer Bank</option>
+            <option value="QRIS2">QRIS</option>
+            <option value="BRIVA">BRI Virtual Account</option>
+            <option value="BNIVA">BNI Virtual Account</option>
+            <option value="MANDIRIVA">Mandiri Virtual Account</option>
+            <option value="PERMATAVA">Permata Virtual Account</option>
+            <option value="ALFAMART">Alfamart</option>
+            <option value="INDOMARET">Indomaret</option>
+            <option value="CASH">Tunai</option>
           </select>
         </div>
 
